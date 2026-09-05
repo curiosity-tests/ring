@@ -1,22 +1,55 @@
 name: ci
 permissions:
   contents: read
+  id-token: write
 on:
+  workflow_dispatch:
+    inputs:
+      leg:
+        description: "baseline (uninstrumented) or instrumented (under chalk/curiosity)"
+        type: choice
+        options: [instrumented, baseline]
+        default: instrumented
+      profile:
+        description: "CrashOverride chalk profile"
+        type: string
+        default: curiosity-tests-racecar
+      racecar_run:
+        description: "racecar correlation token, echoed into the run name"
+        type: string
+        default: ""
   pull_request:
   push:
+env:
+  # The one variable that separates the arms: on baseline, action-checkout
+  # skips its Set up Chalk step entirely.
+  CHALK_ON: ${{ github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline' }}
+
+run-name: "ci ${{ inputs.leg || 'push' }} ${{ inputs.racecar_run }}"
+
 jobs:
   rustfmt:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ubuntu-24.04
 
     steps:
       - run: rustup --version
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: cargo fmt --all -- --check
 
@@ -24,23 +57,33 @@ jobs:
     runs-on: ${{ matrix.host_os }}
 
     strategy:
+      fail-fast: false
       matrix:
         host_os:
-          - macos-15
           - ubuntu-24.04
 
     steps:
       - run: rustup --version
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: mk/clippy.sh
 
   audit:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ubuntu-24.04
 
@@ -57,9 +100,19 @@ jobs:
 
       - run: cargo install cargo-audit  --locked --vers "0.22.1"
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: cargo audit --deny warnings
 
@@ -79,15 +132,25 @@ jobs:
 
       - run: cargo install cargo-semver-checks --locked --vers "0.46.0"
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: cargo semver-checks
 
   deny:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ubuntu-24.04
 
@@ -104,53 +167,52 @@ jobs:
 
       - run: cargo install cargo-deny --locked --vers "0.19.0"
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: cargo deny check
 
   # Verify that documentation builds.
   rustdoc:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ubuntu-24.04
 
     steps:
       - run: rustup --version
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: |
           cargo doc --all-features
 
-  package:
-    # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
-
-    runs-on: windows-2025
-
-    steps:
-      - run: rustup --version
-
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
-
-      - run: ./mk/install-build-tools.ps1
-
-      - run: rustup toolchain install --no-self-update --profile=minimal 1.85.0 # MSRV
-
-      - run: sh mk/package.sh
-        shell: bash
-
-  # Intentionally excludes benchmarks for build performance reasons.
   test:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -158,34 +220,24 @@ jobs:
       CC_ENABLE_DEBUG_OUTPUT: 1
 
     strategy:
+      fail-fast: false
       matrix:
         # XXX: See `test-features` below.
         features:
           - # Default
 
         target:
-          - aarch64-apple-darwin
-          - aarch64-apple-ios
-          # - aarch64-apple-tvos      Tier 3; handled below
-          # - aarch64-apple-visionos  Tier 3; handled below
-          # - aarch64-apple-watchos   Tier 3; handled below
-          # - arm64_32-apple-watchos  Tier 3; handled below.
           - aarch64-linux-android
-          - aarch64-pc-windows-msvc
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
           - arm-unknown-linux-gnueabi
           - armv7-linux-androideabi
           - armv7-unknown-linux-musleabihf
-          - i686-pc-windows-msvc
           - i686-unknown-linux-gnu
           - i686-unknown-linux-musl
           - riscv64gc-unknown-linux-gnu
           - wasm32-wasip1
           - wasm32-wasip2
-          - x86_64-pc-windows-gnu
-          - x86_64-pc-windows-msvc
-          - x86_64-apple-darwin
           - x86_64-unknown-linux-musl
           - x86_64-unknown-linux-gnu
 
@@ -202,58 +254,17 @@ jobs:
           # - beta
 
         include:
-          - target: aarch64-apple-darwin
-            host_os: macos-15
-
-          - target: aarch64-apple-ios
-            host_os: macos-15
-            # TODO: Run in the emulator.
-            cargo_options: --no-run
-
-          - target: aarch64-apple-tvos
-            host_os: macos-15
-            rust_channel: nightly
-            mode: --release
-            # TODO: Run in the emulator.
-            cargo_options: --no-run -Z build-std
-
-          - target: aarch64-apple-visionos
-            host_os: macos-15
-            rust_channel: nightly
-            mode: --release
-            # TODO: Run in the emulator.
-            cargo_options: --no-run -Z build-std
-
-          - target: aarch64-apple-watchos
-            host_os: macos-15
-            rust_channel: nightly
-            mode: --release
-            # TODO: Run in the emulator.
-            cargo_options: --no-run -Z build-std
 
           - target: aarch64-linux-android
             host_os: ubuntu-24.04
             # TODO: https://github.com/briansmith/ring/issues/486
             cargo_options: --no-run
 
-          - target: aarch64-pc-windows-msvc
-            host_os: windows-11-arm
-
           - target: aarch64-unknown-linux-gnu
             host_os: ubuntu-24.04
 
           - target: aarch64-unknown-linux-musl
             host_os: ubuntu-24.04
-
-          - target: arm-unknown-linux-gnueabi
-            host_os: ubuntu-24.04
-
-          # - target: arm64_32-apple-watchos
-          #   host_os: macos-15
-          #   rust_channel: nightly
-          #   mode: --release
-          #   # TODO: Run in the emulator.
-          #   cargo_options: --no-run -Z build-std
 
           - target: armv7-linux-androideabi
             host_os: ubuntu-24.04
@@ -262,9 +273,6 @@ jobs:
 
           - target: armv7-unknown-linux-musleabihf
             host_os: ubuntu-24.04
-
-          - target: i686-pc-windows-msvc
-            host_os: windows-2025
 
           - target: i686-unknown-linux-gnu
             host_os: ubuntu-24.04
@@ -301,15 +309,6 @@ jobs:
           - target: wasm32-wasip2
             host_os: ubuntu-24.04
 
-          - target: x86_64-pc-windows-gnu
-            host_os: windows-2025
-
-          - target: x86_64-pc-windows-msvc
-            host_os: windows-2025
-
-          - target: x86_64-apple-darwin
-            host_os: macos-15
-
           - target: x86_64-unknown-linux-musl
             host_os: ubuntu-24.04
 
@@ -317,9 +316,19 @@ jobs:
             host_os: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: mk/install-build-tools.sh +${{ matrix.rust_channel }} --target=${{ matrix.target }}
         shell: sh
@@ -349,14 +358,24 @@ jobs:
 
   test-bench:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: mk/install-build-tools.sh +stable --target=x86_64-unknown-linux-gnu
         shell: sh
@@ -367,11 +386,12 @@ jobs:
 
   test-doc:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ubuntu-22.04
 
     strategy:
+      fail-fast: false
       matrix:
         rust_channel:
           - stable
@@ -380,9 +400,19 @@ jobs:
     steps:
       - run: rustup toolchain add --profile=minimal ${{ matrix.rust_channel }}
 
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: |
           cargo +${{ matrix.rust_channel }} test -vv --doc --all-features
@@ -392,7 +422,7 @@ jobs:
   # maximum they allow.
   test-features:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -400,6 +430,7 @@ jobs:
       CC_ENABLE_DEBUG_OUTPUT: 1
 
     strategy:
+      fail-fast: false
       matrix:
         features:
           - --no-default-features
@@ -407,7 +438,6 @@ jobs:
 
         target:
           - aarch64-unknown-linux-musl
-          - i686-pc-windows-msvc
           - x86_64-unknown-linux-gnu
 
         mode:
@@ -423,16 +453,23 @@ jobs:
           - target: aarch64-unknown-linux-musl
             host_os: ubuntu-24.04
 
-          - target: i686-pc-windows-msvc
-            host_os: windows-2025
-
           - target: x86_64-unknown-linux-gnu
             host_os: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: mk/install-build-tools.sh +${{ matrix.rust_channel }} --target=${{ matrix.target }}
         shell: sh
@@ -461,7 +498,7 @@ jobs:
   # an additional `webdriver` dimension.
   test-wasm32-browser:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -469,6 +506,7 @@ jobs:
       CC_ENABLE_DEBUG_OUTPUT: 1
 
     strategy:
+      fail-fast: false
       matrix:
         features:
           - --features=wasm32_unknown_unknown_js
@@ -493,9 +531,19 @@ jobs:
           - CHROMEDRIVER=$CHROMEWEBDRIVER/chromedriver
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: mk/install-build-tools.sh +${{ matrix.rust_channel }} --target=${{ matrix.target }}
         shell: sh
@@ -513,7 +561,7 @@ jobs:
 
   coverage:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -533,7 +581,6 @@ jobs:
 
         # TODO: targets
         target:
-          - aarch64-apple-darwin           # Has assembly
           - aarch64-unknown-linux-gnu      # Has assembly
           - arm-unknown-linux-gnueabi      # Has assembly
           - armv7-unknown-linux-gnueabihf  # Has assembly
@@ -543,7 +590,6 @@ jobs:
           - powerpc64le-unknown-linux-gnu  # No assembly 64-bit little-endian with flags
           - riscv64gc-unknown-linux-gnu    # No assembly 64-bit little-endian without flags
           - s390x-unknown-linux-gnu        # No assembly 64-bit big-endian
-          - x86_64-apple-darwin            # Has assembly
           - x86_64-unknown-linux-musl      # Has assembly
 
         mode:
@@ -560,12 +606,6 @@ jobs:
           - target: s390x-unknown-linux-gnu
             host_os: ubuntu-24.04
 
-          - target: aarch64-apple-darwin
-            host_os: macos-15
-
-          # TODO: Use the -musl target after
-          # https://github.com/rust-lang/rust/issues/79556 and
-          # https://github.com/rust-lang/rust/issues/79555 are fixed.
           - target: aarch64-unknown-linux-gnu
             host_os: ubuntu-24.04
 
@@ -608,9 +648,6 @@ jobs:
 
           - target: riscv64gc-unknown-linux-gnu
             host_os: ubuntu-24.04
-
-          - target: x86_64-apple-darwin
-            host_os: macos-15
 
           - target: i686-unknown-linux-gnu
             cpu_model: coreduo-v1
@@ -737,9 +774,19 @@ jobs:
             host_os: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout code
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           persist-credentials: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - run: RING_CPU_MODEL=${{ matrix.cpu_model }} RING_COVERAGE=1 mk/install-build-tools.sh +${{ matrix.rust_channel }} --target=${{ matrix.target }}
         shell: sh
