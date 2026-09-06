@@ -23,14 +23,14 @@ on:
 env:
   # The one variable that separates the arms: on baseline, action-checkout
   # skips its Set up Chalk step entirely.
-  CHALK_ON: ${{ github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline' }}
+  CHALK_ON: ${{ inputs.leg == 'instrumented' }}
 
 run-name: "ci ${{ inputs.leg || 'push' }} ${{ inputs.racecar_run }}"
 
 jobs:
   rustfmt:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-24.04
 
@@ -83,7 +83,7 @@ jobs:
 
   audit:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-24.04
 
@@ -150,7 +150,7 @@ jobs:
 
   deny:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-24.04
 
@@ -186,7 +186,7 @@ jobs:
   # Verify that documentation builds.
   rustdoc:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-24.04
 
@@ -212,7 +212,7 @@ jobs:
 
   test:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -358,7 +358,7 @@ jobs:
 
   test-bench:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-24.04
 
@@ -386,7 +386,7 @@ jobs:
 
   test-doc:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-22.04
 
@@ -422,7 +422,7 @@ jobs:
   # maximum they allow.
   test-features:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -498,7 +498,7 @@ jobs:
   # an additional `webdriver` dimension.
   test-wasm32-browser:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ${{ matrix.host_os }}
 
@@ -561,7 +561,7 @@ jobs:
 
   coverage:
     # Don't run duplicate `push` jobs for the repo owner's PRs.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: ${{ 'push' == 'push' || github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ${{ matrix.host_os }}
 
