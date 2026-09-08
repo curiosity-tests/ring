@@ -38,7 +38,7 @@ jobs:
       - run: rustup --version
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -66,7 +66,7 @@ jobs:
       - run: rustup --version
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -101,7 +101,7 @@ jobs:
       - run: cargo install cargo-audit  --locked --vers "0.22.1"
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -133,7 +133,7 @@ jobs:
       - run: cargo install cargo-semver-checks --locked --vers "0.46.0"
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -168,7 +168,7 @@ jobs:
       - run: cargo install cargo-deny --locked --vers "0.19.0"
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -194,7 +194,7 @@ jobs:
       - run: rustup --version
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -317,7 +317,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -364,7 +364,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -401,7 +401,7 @@ jobs:
       - run: rustup toolchain add --profile=minimal ${{ matrix.rust_channel }}
 
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -458,7 +458,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -532,7 +532,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
@@ -775,7 +775,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: crashappsec/action-checkout@main
+        uses: crashappsec/action-checkout@e9ff46a65f6403d9d88b87d248c3dfa41550ec75
         with:
           chalk: ${{ env.CHALK_ON }}
           profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
